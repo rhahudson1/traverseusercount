@@ -14,37 +14,6 @@ const Index = () => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['analytics'],
     queryFn: fetchAnalyticsData,
-    refetchInterval: (data) => {
-      const now = new Date();
-      let nextRefreshTime = new Date(now);
-
-      let targetMinute;
-      const currentMinutes = now.getMinutes();
-
-      
-      if (currentMinutes < 5) {
-        targetMinute = 5; // Next target is HH:05:00
-      } else {
-        targetMinute = 0; // Next target is (HH+1):00:00
-        nextRefreshTime.setHours(now.getHours() + 1); 
-      }
-
-      nextRefreshTime.setMinutes(targetMinute, 0, 0); 
-
-      // If nextRefreshTime is in the past (e.g., current time is 10:06 and target was 10:05),
-      // then we need to push it to the *next* cycle.
-      if (nextRefreshTime.getTime() <= now.getTime()) {
-        if (targetMinute === 5) { 
-          nextRefreshTime.setHours(nextRefreshTime.getHours() + 1); 
-          nextRefreshTime.setMinutes(0, 0, 0); 
-        } else { 
-          nextRefreshTime.setMinutes(5, 0, 0); 
-        }
-      }
-
-      const interval = nextRefreshTime.getTime() - now.getTime();
-      return Math.max(1000, interval); 
-    }
   });
   const { logout } = useAuth();
   const navigate = useNavigate();

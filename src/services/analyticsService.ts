@@ -23,6 +23,7 @@ const formatDate = (date: Date) => {
 };
 
 export const fetchAnalyticsData = async (): Promise<DashboardData> => {
+  console.log("Fetching analytics data...");
   try {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, orderBy('createdAt', 'desc'));
