@@ -7,6 +7,7 @@ export interface DashboardData {
   dailyGrowth: number;
   totalUsers: number;
   todayUsers: number;
+  lastWeekUsers: number;
   chartData: Array<{ date: string; users: number }>;
   lastRefreshed: string;
 }
@@ -54,29 +55,31 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
     ).length;
     console.log(`Users created today: ${todayUsers}`);
 
-    const { start: weekStart, end: weekEnd } = getDateRange(7);
-    console.log(`Weekly date range: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+    // Rolling 7-day window: [sevenDaysAgo, now)
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
 
-    const lastWeekUsers = users.filter(user => {
-      const isInRange = user.createdAt >= weekStart && user.createdAt <= weekEnd;
-      console.log(`User ${user.id} created at ${user.createdAt.toISOString()} - In weekly range: ${isInRange}`);
-      return isInRange;
-    }).length;
+    // Users created in the last 7 days (up to now)
+    const lastWeekUsers = users.filter(u =>
+      u.createdAt >= sevenDaysAgo && u.createdAt < now
+    ).length;
+
+    // Users created in the 7 days before that
+    const fourteenDaysAgo = new Date(sevenDaysAgo);
+    fourteenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const previousWeekUsers = users.filter(u =>
+      u.createdAt >= fourteenDaysAgo && u.createdAt < sevenDaysAgo
+    ).length;
+
+    console.log(`Previous week: ${fourteenDaysAgo.toISOString()} to ${sevenDaysAgo.toISOString()}`);
+    console.log(`Last week: ${sevenDaysAgo.toISOString()} to ${now.toISOString()}`);
+    console.log(`Users created in the previous week: ${previousWeekUsers}`);
     console.log(`Users created in the last week: ${lastWeekUsers}`);
 
-    // Get users from previous week for comparison
-    const previousWeekStart = new Date(weekStart);
-    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
-    const previousWeekEnd = new Date(weekStart);
-    console.log(`Previous week range: ${previousWeekStart.toISOString()} to ${previousWeekEnd.toISOString()}`);
-
-    const previousWeekUsers = users.filter(user =>
-      user.createdAt >= previousWeekStart && user.createdAt < previousWeekEnd
-    ).length;
-    console.log(`Users created in the previous week: ${previousWeekUsers}`);
-
-    // Calculate growth rate as percentage change from previous week
-    const weeklyGrowth = previousWeekUsers > 0 
+    // Week-over-week growth
+    const weeklyGrowth = previousWeekUsers > 0
       ? Number(((lastWeekUsers - previousWeekUsers) / previousWeekUsers * 100).toFixed(2))
       : lastWeekUsers > 0 ? 100 : 0;
     const dailyGrowth = todayUsers > 0 
@@ -112,6 +115,7 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
       dailyGrowth,
       totalUsers,
       todayUsers,
+      lastWeekUsers,
       chartData,
       lastRefreshed: new Date().toLocaleString()
     };

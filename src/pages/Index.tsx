@@ -97,14 +97,14 @@ const Index = () => {
                 title="Total Users"
                 value={data?.totalUsers || 0}
                 change={data?.weeklyGrowth || 0}
-                changeType="increase"
+                changeType={data && data.weeklyGrowth >= 0 ? "decrease" : "increase"}
                 period="All time"
               />
               <MetricCard
                 title="Weekly Growth"
-                value={Math.round((data?.weeklyGrowth || 0) * (data?.totalUsers || 0) / 100)}
+                value={data?.lastWeekUsers || 0}
                 change={data?.weeklyGrowth || 0}
-                changeType="increase"
+                changeType={data && data.weeklyGrowth >= 0 ? "decrease" : "increase"}
                 period="Past 7 days"
               />
               <MetricCard
