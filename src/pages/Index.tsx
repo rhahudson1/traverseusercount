@@ -96,19 +96,17 @@ const Index = () => {
               <MetricCard
                 title="Total Users"
                 value={data?.totalUsers || 0}
-                change={data?.weeklyGrowth || 0}
-                changeType={data && data.weeklyGrowth >= 0 ? "decrease" : "increase"}
                 period="All time"
               />
               <MetricCard
                 title="Weekly Growth"
                 value={data?.lastWeekUsers || 0}
-                change={data?.weeklyGrowth || 0}
-                changeType={data && data.weeklyGrowth >= 0 ? "decrease" : "increase"}
+                change={data && data.totalUsers ? Number(((data.lastWeekUsers / data.totalUsers) * 100).toFixed(2)) : 0}
+                changeType="increase"
                 period="Past 7 days"
               />
               <MetricCard
-                title={`New Users Today (${new Date().toLocaleDateString()})`}
+                title={`New Users Today`}
                 value={data?.todayUsers || 0}
                 change={data?.dailyGrowth || 0}
                 changeType="increase"

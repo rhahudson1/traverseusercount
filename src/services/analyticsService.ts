@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, getCountFromServer, where } from 'firebase/firestore';
 import { db } from '@/lib/firestore';
 
 // This is a mock service - replace with your actual Firebase integration
@@ -29,10 +29,26 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
   console.log("Starting analytics data fetch...");
   try {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, orderBy('createdAt', 'desc'));
-    console.log("Querying Firestore for users...");
+
+    // Efficient total user count (1 read)
+    const countSnap = await getCountFromServer(usersRef);
+    const totalUsers = countSnap.data().count;
+    console.log(`Total users (efficient count): ${totalUsers}`);
+
+    // Rolling 7-day window: [sevenDaysAgo, now)
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+
+    // Only fetch users created in the last 7 days
+    const q = query(
+      usersRef,
+      where('createdAt', '>=', sevenDaysAgo.toISOString()),
+      orderBy('createdAt', 'desc')
+    );
+    console.log("Querying Firestore for users created in the last 7 days...");
     const snapshot = await getDocs(q);
-    console.log(`Retrieved ${snapshot.docs.length} users from Firestore`);
+    console.log(`Retrieved ${snapshot.docs.length} users from Firestore (last 7 days)`);
     
     const users = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -41,9 +57,7 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
     console.log("Processed user data with creation dates");
     console.log("User creation dates:", users.map(u => u.createdAt.toISOString()));
 
-    const totalUsers = users.length;
-    console.log(`Total users: ${totalUsers}`);
-
+    // Today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -55,11 +69,6 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
     ).length;
     console.log(`Users created today: ${todayUsers}`);
 
-    // Rolling 7-day window: [sevenDaysAgo, now)
-    const now = new Date();
-    const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(now.getDate() - 7);
-
     // Users created in the last 7 days (up to now)
     const lastWeekUsers = users.filter(u =>
       u.createdAt >= sevenDaysAgo && u.createdAt < now
@@ -68,7 +77,6 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
     // Users created in the 7 days before that
     const fourteenDaysAgo = new Date(sevenDaysAgo);
     fourteenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
     const previousWeekUsers = users.filter(u =>
       u.createdAt >= fourteenDaysAgo && u.createdAt < sevenDaysAgo
     ).length;
@@ -119,6 +127,9 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
       chartData,
       lastRefreshed: new Date().toLocaleString()
     };
+    // Calculate and log total Firestore reads
+    const totalReads = 1 /* getCountFromServer */ + snapshot.docs.length /* getDocs for recent users */;
+    console.log(`Total Firestore reads for fetchAnalyticsData: ${totalReads}`);
     console.log("Analytics data computation completed:", result);
     return result;
   } catch (error) {
