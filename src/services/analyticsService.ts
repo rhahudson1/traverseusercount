@@ -121,7 +121,7 @@ export const fetchAnalyticsData = async (): Promise<DashboardData> => {
     const result = {
       weeklyGrowth,
       dailyGrowth,
-      totalUsers,
+      totalUsers: totalUsers + 322,
       todayUsers,
       lastWeekUsers,
       chartData,
